@@ -1,12 +1,11 @@
 import io
-import logging
 import os
 import time
 import telegram
 
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from selenium import webdriver
@@ -22,6 +21,8 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
+DAILY_SCHEDULED_HOUR = 9  # Runs on every 9 AM
+
 username = os.environ.get("KNOU_ID")
 password = os.environ.get("KNOU_PW")
 
@@ -34,8 +35,8 @@ def init_driver():
     options = webdriver.ChromeOptions()
     options.add_argument("headless")
     options.add_argument("window-size=1920x1080")
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     options.add_argument("disable-gpu")
     options.add_argument(
         f"user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) "
@@ -68,6 +69,24 @@ class Subject:  # 과목
     lectures: List[Lecture]
 
 
+def report_via_telegram(
+    text: str = "",
+    elem: Optional[WebElement] = None,
+    should_capture_driver: bool = False,
+):
+    bot.send_message(chat_id=telegram_chat_id, text=text)
+    if elem is not None:
+        bot.send_photo(
+            chat_id=telegram_chat_id,
+            photo=io.BytesIO(elem.screenshot_as_png),
+        )
+    if should_capture_driver:
+        bot.send_photo(
+            chat_id=telegram_chat_id,
+            photo=io.BytesIO(driver.get_screenshot_as_png()),
+        )
+
+
 def main():
     # login
     driver.get("https://ep.knou.ac.kr/")
@@ -89,11 +108,7 @@ def main():
     )
 
     lecture_progress = driver.find_element(By.CLASS_NAME, "lecture-progress")
-    bot.send_message(chat_id=telegram_chat_id, text="현재 수강 상황입니다.")
-    bot.send_photo(
-        chat_id=telegram_chat_id,
-        photo=io.BytesIO(lecture_progress.screenshot_as_png),
-    )
+    report_via_telegram(text="현재 수강 상황입니다.", elem=lecture_progress)
 
     subject_elements = lecture_progress.find_elements(
         By.CLASS_NAME, "lecture-progress-item"
@@ -108,6 +123,11 @@ def main():
 
             if le.button is None:
                 break
+
+            report_via_telegram(
+                text=f"{subject.title} 의 {le.title} 시작합니다. \
+현재 수강률은 {subject.progress} 입니다."
+            )
 
             le.button.click()
             driver.implicitly_wait(1)
@@ -134,17 +154,13 @@ def main():
                 )
                 driver.switch_to.alert.accept()
             except TimeoutException:
-                logging.warning("No alert when finishing the video")
+                report_via_telegram(
+                    "학습 종료 시 확인 창이 뜨지 않았습니다.", should_capture_driver=True
+                )
                 driver.close()
 
             driver.switch_to.window(main_tab)
-            bot.send_message(
-                chat_id=telegram_chat_id, text=f"{le.title} 을 수강했습니다."
-            )
-
-        # bot.send_message(
-        #     chat_id=telegram_chat_id, text=f"{subject.title} 과목을 모두 수강했습니다."
-        # )
+            report_via_telegram(text=f"{le.title} 을 수강했습니다.")
 
 
 def wait_until_lecture_completion():
@@ -222,10 +238,10 @@ def watch_continue():
 def is_playing():
     try:
         if (
-                driver.find_element(
-                    By.XPATH, """//*[@id="comment_player0"]"""
-                ).value_of_css_property("display")
-                == "none"
+            driver.find_element(
+                By.XPATH, """//*[@id="comment_player0"]"""
+            ).value_of_css_property("display")
+            == "none"
         ):
             return True
     except:
@@ -252,8 +268,10 @@ def parse_subject(element):
         progress = float(progress_text)
     except ValueError:
         progress = float(0)
-        logging.warning(
-            f"invalid progress. progress_text: {progress_text} title: {title}"
+        report_via_telegram(
+            text=f"Progress가 잘못되었습니다. text: {progress_text} title: "
+            f"{title}",
+            elem=info,
         )
 
     # 강의 목록 파싱 전 확장 버튼 클릭 필요
@@ -294,9 +312,10 @@ def parse_lecture(element):
             raise e
 
     if "ch" not in has_done_classes:
-        logging.warning(
-            f"invalid done text. has_done_classes: {has_done_classes} "
-            f"lecture_title: {title}"
+        report_via_telegram(
+            text=f"invalid done text. has_done_classes: {has_done_classes} "
+            f"lecture_title: {title}",
+            elem=element,
         )
 
     return Lecture(
@@ -307,14 +326,18 @@ def parse_lecture(element):
 
 
 if __name__ == "__main__":
+    # Wait until DAILY_SCHEDULED_HOUR
+    t = datetime.today()
+    future = datetime(t.year, t.month, t.day, DAILY_SCHEDULED_HOUR, 0)
+    if t.hour >= DAILY_SCHEDULED_HOUR:
+        future += timedelta(days=1)
+    time.sleep((future - t).total_seconds())
+
     try:
         main()
     except Exception as e:
-        bot.send_message(chat_id=telegram_chat_id, text=f"에러가 발생했습니다: {e}")
-        bot.send_photo(
-            chat_id=telegram_chat_id,
-            photo=io.BytesIO(driver.get_screenshot_as_png()),
+        report_via_telegram(
+            text=f"에러가 발생했습니다: {e}", should_capture_driver=True
         )
-        driver.quit()
-    else:
-        time.sleep(3600)  # Wait for 1 hour
+
+    driver.quit()
