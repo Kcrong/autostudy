@@ -10,7 +10,7 @@ services:
       - "4444:4444"
 
   app:
-    image: python:3.10
+    image: kcrong/auto-knou:latest
     container_name: app
     env_file: .env
     environment:
