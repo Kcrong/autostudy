@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, Optional
 
+import pytz
 import telegram
 from selenium import webdriver
 from selenium.common import (
@@ -325,9 +326,13 @@ def parse_lecture(element):
 
 
 if __name__ == "__main__":
+    kst = pytz.timezone("Asia/Seoul")
+
     # Wait until DAILY_SCHEDULED_HOUR
-    t = datetime.today()
-    future = datetime(t.year, t.month, t.day, DAILY_SCHEDULED_HOUR, 0)
+    t = datetime.now(kst)
+    future = datetime(
+        t.year, t.month, t.day, DAILY_SCHEDULED_HOUR, 0, tzinfo=kst
+    )
     if t.hour >= DAILY_SCHEDULED_HOUR:
         future += timedelta(days=1)
     delta = future - t
