@@ -21,6 +21,7 @@ jobs:
             kcrong/auto-knou
           tags: |
             type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
