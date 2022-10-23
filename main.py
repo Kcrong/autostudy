@@ -42,7 +42,8 @@ def init_driver():
     )
 
     return webdriver.Remote(
-        command_executor=driver_command_url, options=options,
+        command_executor=driver_command_url,
+        options=options,
     )
 
 
@@ -221,10 +222,10 @@ def watch_continue():
 def is_playing():
     try:
         if (
-            driver.find_element(
-                By.XPATH, """//*[@id="comment_player0"]"""
-            ).value_of_css_property("display")
-            == "none"
+                driver.find_element(
+                    By.XPATH, """//*[@id="comment_player0"]"""
+                ).value_of_css_property("display")
+                == "none"
         ):
             return True
     except:
@@ -311,10 +312,7 @@ if __name__ == "__main__":
     except Exception as e:
         logging.error(e)
         logging.info("Unexpected error has been raised. Closing driver...")
-        driver.close()
         driver.quit()
     else:
-        bot.send_message(
-            chat_id=telegram_chat_id, text="현재 수강 가능한 과목이 없습니다."
-        )
-        time.sleep(3600) # Wait for 1 hour
+        bot.send_message(chat_id=telegram_chat_id, text="현재 수강 가능한 과목이 없습니다.")
+        time.sleep(3600)  # Wait for 1 hour
