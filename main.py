@@ -67,13 +67,11 @@ class Subject:  # 과목
 
 
 def main():
-    driver.get("https://www.naver.com")
+    # login
+    driver.get("https://ep.knou.ac.kr/")
 
     assert len(driver.window_handles) == 1
     main_tab = driver.window_handles[0]
-
-    # login
-    driver.get("https://ep.knou.ac.kr/")
 
     if driver.current_url == "https://ep.knou.ac.kr/login.do?epTicket=LOG":
         driver.find_element(By.ID, "username").send_keys(username)
