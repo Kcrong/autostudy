@@ -1,13 +1,12 @@
 import io
 import os
 import time
-import telegram
-
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, Optional
 
+import telegram
 from selenium import webdriver
 from selenium.common import (
     NoSuchElementException,
@@ -15,8 +14,8 @@ from selenium.common import (
     TimeoutException,
 )
 from selenium.webdriver import ActionChains
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
