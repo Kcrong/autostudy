@@ -1,9 +1,13 @@
+import io
 import logging
+import os
 import time
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
+
+import telegram
 
 from selenium import webdriver
 from selenium.common import (
@@ -20,11 +24,14 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
 username = "hyunwoo1010"
-password = ""
+password = os.environ.get("PW")
+
+chat_id = 5538533245
 
 # driver = webdriver.Chrome("./chromedriver")
 driver = webdriver.Chrome(service=Service("./chromedriver"))
 actions = ActionChains(driver)
+bot = telegram.Bot(token=os.environ.get("TELEGRAM_API_TOKEN"))
 
 
 @dataclass
@@ -63,9 +70,15 @@ def main():
         "https://ucampus.knou.ac.kr/ekp/user/study/retrieveUMYStudy.sdo"
     )
 
-    subject_elements = driver.find_element(
-        By.CLASS_NAME, "lecture-progress"
-    ).find_elements(By.CLASS_NAME, "lecture-progress-item")
+    lecture_progress = driver.find_element(By.CLASS_NAME, "lecture-progress")
+    bot.send_message(chat_id=chat_id, text="현재 수강 상황입니다.")
+    bot.send_photo(
+        chat_id=chat_id, photo=io.BytesIO(lecture_progress.screenshot_as_png)
+    )
+
+    subject_elements = lecture_progress.find_elements(
+        By.CLASS_NAME, "lecture-progress-item"
+    )
 
     for element in subject_elements:
         subject = parse_subject(element)
@@ -106,8 +119,11 @@ def main():
                 driver.close()
 
             driver.switch_to.window(main_tab)
+            bot.send_message(chat_id=chat_id, text=f"{le.title} 을 수강했습니다.")
 
-        print(subject.title, "has completed")
+        # bot.send_message(
+        #     chat_id=chat_id, text=f"{subject.title} 과목을 모두 수강했습니다."
+        # )
 
 
 def wait_until_lecture_completion():
@@ -133,18 +149,12 @@ def wait_until_lecture_completion():
             ) - datetime.strptime(current_location, "%M:%S")
             period = delta.total_seconds() / 3
 
-            print(
-                f"Now {current_location}, check again after {period} seconds"
-            )
-
             time.sleep(period)
 
 
 def play_player_with_fastest():
-    print("Waiting for video loading", time.strftime("%c"))
     driver.implicitly_wait(3)
     time.sleep(3)
-    print("Done", time.strftime("%c"))
 
     # play
     while True:
@@ -282,3 +292,5 @@ if __name__ == "__main__":
         except Exception as e:
             logging.error(e)
             logging.info("Unexpected error has been raised. Retrying...")
+        else:
+            bot.send_message(chat_id=chat_id, text="현재 수강 가능한 과목이 없습니다.")
