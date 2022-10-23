@@ -2,12 +2,13 @@ import io
 import logging
 import os
 import time
+import telegram
+
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
-import telegram
 
 from selenium import webdriver
 from selenium.common import (
