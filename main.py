@@ -358,11 +358,11 @@ if __name__ == "__main__":
     )
     if t.hour >= DAILY_SCHEDULED_HOUR:
         future += timedelta(days=1)
-    delta = future - t
+
     report_via_telegram(
-        text=f"재시작되었습니다. " f"{humanize.naturaltime(delta)} 시작합니다."
+        text=f"재시작되었습니다. " f"{humanize.naturaltime(t-future)} 시작합니다."
     )
-    time.sleep(delta.total_seconds())
+    time.sleep((future - t).total_seconds())
 
     try:
         main()
