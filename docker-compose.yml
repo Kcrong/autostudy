@@ -8,6 +8,11 @@ services:
       - SE_NODE_MAX_SESSIONS=3 # Maximum 3 sessions
     ports:
       - "4444:4444"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:4444" ]
+      interval: 1s
+      timeout: 3s
+      retries: 60
 
   app:
     image: kcrong/auto-knou:latest
@@ -15,3 +20,5 @@ services:
     env_file: .env
     environment:
       - "DRIVER_COMMAND_URL=https://chromedriver:4444"
+    depends_on:
+      - chromedriver
