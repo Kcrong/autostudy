@@ -295,3 +295,4 @@ if __name__ == "__main__":
             logging.info("Unexpected error has been raised. Retrying...")
         else:
             bot.send_message(chat_id=chat_id, text="현재 수강 가능한 과목이 없습니다.")
+            break
