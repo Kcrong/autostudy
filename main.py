@@ -376,15 +376,15 @@ if __name__ == "__main__":
     while True:
         try:
             main()
+        except NoRemainLectureException:
+            report_via_telegram(
+                text=f"현재 열려있는 모든 강좌를 수강했습니다.",
+            )
+            break
         except Exception as e:
-            if e == NoRemainLectureException:
-                report_via_telegram(
-                    text=f"현재 열려있는 모든 강좌를 수강했습니다.",
-                )
-            else:
-                report_via_telegram(
-                    text=f"에러가 발생했습니다: {e}", should_capture_driver=True
-                )
+            report_via_telegram(
+                text=f"에러가 발생했습니다: {e}", should_capture_driver=True
+            )
             break
 
     driver.quit()
