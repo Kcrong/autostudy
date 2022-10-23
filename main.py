@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, Optional
 
+import humanize
 import pytz
 import telegram
 from selenium import webdriver
@@ -325,8 +326,30 @@ def parse_lecture(element):
     )
 
 
+def td_format(td_object):
+    seconds = int(td_object.total_seconds())
+    periods = [
+        ("년", 60 * 60 * 24 * 365),
+        ("월", 60 * 60 * 24 * 30),
+        ("일", 60 * 60 * 24),
+        ("시간", 60 * 60),
+        ("분", 60),
+        ("초", 1),
+    ]
+
+    strings = []
+    for period_name, period_seconds in periods:
+        if seconds > period_seconds:
+            period_value, seconds = divmod(seconds, period_seconds)
+            has_s = "s" if period_value > 1 else ""
+            strings.append("%s %s%s" % (period_value, period_name, has_s))
+
+    return ", ".join(strings)
+
+
 if __name__ == "__main__":
     kst = pytz.timezone("Asia/Seoul")
+    humanize.i18n.activate("ko_KR")
 
     # Wait until DAILY_SCHEDULED_HOUR
     t = datetime.now(kst)
@@ -336,8 +359,9 @@ if __name__ == "__main__":
     if t.hour >= DAILY_SCHEDULED_HOUR:
         future += timedelta(days=1)
     delta = future - t
-    print(f"Waiting for {delta}")
-    report_via_telegram(text=f"재시작되었습니다. {delta} 후 시작합니다.")
+    report_via_telegram(
+        text=f"재시작되었습니다. " f"{humanize.naturaltime(delta)} 시작합니다."
+    )
     time.sleep(delta.total_seconds())
 
     try:
