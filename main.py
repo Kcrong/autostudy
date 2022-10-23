@@ -50,6 +50,10 @@ class Subject:  # 과목
     lectures: List[Lecture]
 
 
+class NoRemainLectureException(Exception):
+    pass
+
+
 def report_via_telegram(
     text: str = "",
     elem: Optional[WebElement] = None,
@@ -106,8 +110,8 @@ def main():
                 break
 
             report_via_telegram(
-                text=f"{subject.title} 의 {le.title} 시작합니다. \
-현재 수강률은 {subject.progress} 입니다."
+                text=f"{subject.title} 의 {le.title} 시작합니다. "
+                f"현재 수강률은 {subject.progress} 입니다."
             )
 
             le.button.click()
@@ -142,6 +146,9 @@ def main():
 
             driver.switch_to.window(main_tab)
             report_via_telegram(text=f"{le.title} 을 수강했습니다.")
+            return
+
+    raise NoRemainLectureException
 
 
 def wait_until_lecture_completion():
@@ -366,11 +373,18 @@ if __name__ == "__main__":
     driver = init_driver()
     actions = ActionChains(driver)
 
-    try:
-        main()
-    except Exception as e:
-        report_via_telegram(
-            text=f"에러가 발생했습니다: {e}", should_capture_driver=True
-        )
+    while True:
+        try:
+            main()
+        except Exception as e:
+            if e == NoRemainLectureException:
+                report_via_telegram(
+                    text=f"현재 열려있는 모든 강좌를 수강했습니다.",
+                )
+            else:
+                report_via_telegram(
+                    text=f"에러가 발생했습니다: {e}", should_capture_driver=True
+                )
+            break
 
     driver.quit()
