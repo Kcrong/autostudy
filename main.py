@@ -31,28 +31,8 @@ telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
 telegram_token = os.environ.get("TELEGRAM_API_TOKEN")
 driver_command_url = os.environ.get("DRIVER_COMMAND_URL")
 
-
-def init_driver():
-    options = webdriver.ChromeOptions()
-    options.add_argument("headless")
-    options.add_argument("window-size=1920x1080")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("disable-gpu")
-    options.add_argument(
-        f"user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) "
-        f"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 "
-        f"Safari/537.36"
-    )
-
-    return webdriver.Remote(
-        command_executor=driver_command_url,
-        options=options,
-    )
-
-
-driver = init_driver()
-actions = ActionChains(driver)
+driver = None
+actions = None
 bot = telegram.Bot(token=telegram_token)
 
 
@@ -347,6 +327,25 @@ def td_format(td_object):
     return ", ".join(strings)
 
 
+def init_driver():
+    options = webdriver.ChromeOptions()
+    options.add_argument("headless")
+    options.add_argument("window-size=1920x1080")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("disable-gpu")
+    options.add_argument(
+        f"user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) "
+        f"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 "
+        f"Safari/537.36"
+    )
+
+    return webdriver.Remote(
+        command_executor=driver_command_url,
+        options=options,
+    )
+
+
 if __name__ == "__main__":
     kst = pytz.timezone("Asia/Seoul")
     humanize.i18n.activate("ko_KR")
@@ -363,6 +362,9 @@ if __name__ == "__main__":
         text=f"재시작되었습니다. " f"{humanize.naturaltime(t - future)} 시작합니다."
     )
     time.sleep((future - t).total_seconds())
+
+    driver = init_driver()
+    actions = ActionChains(driver)
 
     try:
         main()
