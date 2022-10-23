@@ -9,7 +9,7 @@ services:
     ports:
       - "4444:4444"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:4444" ]
+      test: [ "CMD", "curl", "http://localhost:4444" ]
       interval: 1s
       timeout: 3s
       retries: 60
@@ -22,3 +22,4 @@ services:
       - "DRIVER_COMMAND_URL=https://chromedriver:4444"
     depends_on:
       - chromedriver
+    restart: always

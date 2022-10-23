@@ -42,7 +42,7 @@ def init_driver():
     )
 
     return webdriver.Remote(
-        command_executor=driver_command_url, options=options
+        command_executor=driver_command_url, options=options,
     )
 
 
@@ -306,14 +306,15 @@ def parse_lecture(element):
 
 
 if __name__ == "__main__":
-    while True:
-        try:
-            main()
-        except Exception as e:
-            logging.error(e)
-            logging.info("Unexpected error has been raised. Retrying...")
-        else:
-            bot.send_message(
-                chat_id=telegram_chat_id, text="현재 수강 가능한 과목이 없습니다."
-            )
-            break
+    try:
+        main()
+    except Exception as e:
+        logging.error(e)
+        logging.info("Unexpected error has been raised. Closing driver...")
+        driver.close()
+        driver.quit()
+    else:
+        bot.send_message(
+            chat_id=telegram_chat_id, text="현재 수강 가능한 과목이 없습니다."
+        )
+        time.sleep(3600) # Wait for 1 hour
