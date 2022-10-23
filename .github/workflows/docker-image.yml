@@ -13,23 +13,30 @@ jobs:
         name: Checkout
         uses: actions/checkout@v3
       -
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            kcrong/auto-knou
+          tags: |
+            type=sha
+      -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - 
-        name: Declare some variables
-        id: vars
-        shell: bash
-        run: |
-          echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
-
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: Build
         uses: docker/build-push-action@v3
         with:
           context: .
-          platforms: linux/amd64
-          tags: kcrong/auto-knou:${GITHUB_SHA}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
