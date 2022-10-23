@@ -7,3 +7,6 @@ lint:
 format:
 	@pip install black
 	black -l 79 main.py
+
+freeze:
+	pip freeze > requirements.txt

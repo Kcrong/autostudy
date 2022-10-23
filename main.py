@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
-
 from selenium import webdriver
 from selenium.common import (
     NoSuchElementException,
@@ -17,22 +16,39 @@ from selenium.common import (
     TimeoutException,
 )
 from selenium.webdriver import ActionChains
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
-username = "hyunwoo1010"
-password = os.environ.get("PW")
+username = os.environ.get("KNOU_ID")
+password = os.environ.get("KNOU_PW")
 
-chat_id = 5538533245
+telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+telegram_token = os.environ.get("TELEGRAM_API_TOKEN")
+driver_command_url = os.environ.get("DRIVER_COMMAND_URL")
 
-# driver = webdriver.Chrome("./chromedriver")
-driver = webdriver.Chrome(service=Service("./chromedriver"))
+
+def init_driver():
+    options = webdriver.ChromeOptions()
+    options.add_argument("headless")
+    options.add_argument("window-size=1920x1080")
+    options.add_argument("disable-gpu")
+    options.add_argument(
+        f"user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) "
+        f"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 "
+        f"Safari/537.36"
+    )
+
+    return webdriver.Remote(
+        command_executor=driver_command_url, options=options
+    )
+
+
+driver = init_driver()
 actions = ActionChains(driver)
-bot = telegram.Bot(token=os.environ.get("TELEGRAM_API_TOKEN"))
+bot = telegram.Bot(token=telegram_token)
 
 
 @dataclass
@@ -72,9 +88,10 @@ def main():
     )
 
     lecture_progress = driver.find_element(By.CLASS_NAME, "lecture-progress")
-    bot.send_message(chat_id=chat_id, text="현재 수강 상황입니다.")
+    bot.send_message(chat_id=telegram_chat_id, text="현재 수강 상황입니다.")
     bot.send_photo(
-        chat_id=chat_id, photo=io.BytesIO(lecture_progress.screenshot_as_png)
+        chat_id=telegram_chat_id,
+        photo=io.BytesIO(lecture_progress.screenshot_as_png),
     )
 
     subject_elements = lecture_progress.find_elements(
@@ -120,10 +137,12 @@ def main():
                 driver.close()
 
             driver.switch_to.window(main_tab)
-            bot.send_message(chat_id=chat_id, text=f"{le.title} 을 수강했습니다.")
+            bot.send_message(
+                chat_id=telegram_chat_id, text=f"{le.title} 을 수강했습니다."
+            )
 
         # bot.send_message(
-        #     chat_id=chat_id, text=f"{subject.title} 과목을 모두 수강했습니다."
+        #     chat_id=telegram_chat_id, text=f"{subject.title} 과목을 모두 수강했습니다."
         # )
 
 
@@ -294,5 +313,7 @@ if __name__ == "__main__":
             logging.error(e)
             logging.info("Unexpected error has been raised. Retrying...")
         else:
-            bot.send_message(chat_id=chat_id, text="현재 수강 가능한 과목이 없습니다.")
+            bot.send_message(
+                chat_id=telegram_chat_id, text="현재 수강 가능한 과목이 없습니다."
+            )
             break
