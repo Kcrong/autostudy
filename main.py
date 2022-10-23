@@ -331,7 +331,10 @@ if __name__ == "__main__":
     future = datetime(t.year, t.month, t.day, DAILY_SCHEDULED_HOUR, 0)
     if t.hour >= DAILY_SCHEDULED_HOUR:
         future += timedelta(days=1)
-    time.sleep((future - t).total_seconds())
+    delta = future - t
+    print(f"Waiting for {delta}")
+    report_via_telegram(text=f"재시작되었습니다. {delta} 후 시작합니다.")
+    time.sleep(delta.total_seconds())
 
     try:
         main()
