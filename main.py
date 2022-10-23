@@ -310,9 +310,11 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        logging.error(e)
-        logging.info("Unexpected error has been raised. Closing driver...")
+        bot.send_message(chat_id=telegram_chat_id, text=f"에러가 발생했습니다: {e}")
+        bot.send_photo(
+            chat_id=telegram_chat_id,
+            photo=io.BytesIO(driver.get_screenshot_as_png()),
+        )
         driver.quit()
     else:
-        bot.send_message(chat_id=telegram_chat_id, text="현재 수강 가능한 과목이 없습니다.")
         time.sleep(3600)  # Wait for 1 hour
