@@ -28,7 +28,7 @@ import sentry_sdk
 
 sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN"), traces_sample_rate=1.0)
 
-DAILY_SCHEDULED_HOUR = 9  # Runs on every 9 AM
+DAILY_SCHEDULED_HOUR = 12  # Runs on every 12 PM
 
 username = os.environ.get("KNOU_ID")
 password = os.environ.get("KNOU_PW")
@@ -384,7 +384,6 @@ def main():
     if t.hour >= DAILY_SCHEDULED_HOUR:
         future += timedelta(days=1)
 
-    future = t
     report_via_telegram(
         text=f"재시작되었습니다. " f"{humanize.naturaltime(t - future)} 시작합니다."
     )
