@@ -18,9 +18,15 @@ from selenium.common import (
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
+from telegram.ext import Updater
+
+import sentry_sdk
+
+sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN"), traces_sample_rate=1.0)
 
 DAILY_SCHEDULED_HOUR = 9  # Runs on every 9 AM
 
@@ -31,9 +37,10 @@ telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
 telegram_token = os.environ.get("TELEGRAM_API_TOKEN")
 driver_command_url = os.environ.get("DRIVER_COMMAND_URL")
 
-driver = None
-actions = None
+driver: Optional[WebDriver] = None
+actions: Optional[ActionChains] = None
 bot = telegram.Bot(token=telegram_token)
+updater = Updater(telegram_token)
 
 
 @dataclass
@@ -72,7 +79,12 @@ def report_via_telegram(
         )
 
 
-def main():
+def run():
+    global driver
+    global actions
+    driver = init_driver()
+    actions = ActionChains(driver)
+
     # login
     driver.get("https://ep.knou.ac.kr/")
 
@@ -169,12 +181,19 @@ def wait_until_lecture_completion():
             break
 
         else:
-            delta = datetime.strptime(
-                total_duration, "%M:%S"
-            ) - datetime.strptime(current_location, "%M:%S")
+            delta = parse_duration(total_duration) - parse_duration(
+                current_location
+            )
             period = delta.total_seconds() / 3
 
             time.sleep(period)
+
+
+def parse_duration(v: str) -> datetime:
+    try:
+        return datetime.strptime(v, "%M:%S")
+    except ValueError:
+        return datetime.strptime(v, "%H:%M:%S")
 
 
 def play_player_with_fastest():
@@ -334,7 +353,7 @@ def td_format(td_object):
     return ", ".join(strings)
 
 
-def init_driver():
+def init_driver() -> WebDriver:
     options = webdriver.ChromeOptions()
     options.add_argument("headless")
     options.add_argument("window-size=1920x1080")
@@ -353,7 +372,7 @@ def init_driver():
     )
 
 
-if __name__ == "__main__":
+def main():
     kst = pytz.timezone("Asia/Seoul")
     humanize.i18n.activate("ko_KR")
 
@@ -365,17 +384,15 @@ if __name__ == "__main__":
     if t.hour >= DAILY_SCHEDULED_HOUR:
         future += timedelta(days=1)
 
+    future = t
     report_via_telegram(
         text=f"재시작되었습니다. " f"{humanize.naturaltime(t - future)} 시작합니다."
     )
     time.sleep((future - t).total_seconds())
 
-    driver = init_driver()
-    actions = ActionChains(driver)
-
     while True:
         try:
-            main()
+            run()
         except NoRemainLectureException:
             report_via_telegram(
                 text=f"현재 열려있는 모든 강좌를 수강했습니다.",
@@ -385,6 +402,11 @@ if __name__ == "__main__":
             report_via_telegram(
                 text=f"에러가 발생했습니다: {e}", should_capture_driver=True
             )
+            sentry_sdk.capture_exception(e)
             break
+        finally:
+            driver.quit()
 
-    driver.quit()
+
+if __name__ == "__main__":
+    main()
