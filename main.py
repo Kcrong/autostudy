@@ -3,11 +3,12 @@ import os
 import time
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 import humanize
 import pytz
+import sentry_sdk
 import telegram
 from selenium import webdriver
 from selenium.common import (
@@ -23,8 +24,6 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 from telegram.ext import Updater
-
-import sentry_sdk
 
 sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN"), traces_sample_rate=1.0)
 
@@ -373,13 +372,18 @@ def init_driver() -> WebDriver:
 
 
 def main():
-    kst = pytz.timezone("Asia/Seoul")
+    kst = timezone(timedelta(hours=9))
+
     humanize.i18n.activate("ko_KR")
 
     # Wait until DAILY_SCHEDULED_HOUR
     t = datetime.now(kst)
     future = datetime(
-        t.year, t.month, t.day, DAILY_SCHEDULED_HOUR, 0, tzinfo=kst
+        year=t.year,
+        month=t.month,
+        day=t.day,
+        hour=DAILY_SCHEDULED_HOUR,
+        tzinfo=kst,
     )
     if t.hour >= DAILY_SCHEDULED_HOUR:
         future += timedelta(days=1)
