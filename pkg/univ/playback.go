@@ -163,9 +163,8 @@ func play(wd selenium.WebDriver) error {
 		return err
 	}
 
-	if err := setFastest(wd); err != nil {
-		return err
-	}
+	// NOTE: Even if fails to set the speed, ignore the error.
+	_ = setFastest(wd)
 
 	totalDuration, err := parsePlayerDuration(wd, `//*[@id="wp-controls-outer-controlbar"]/div[2]/div[2]/div/div/div[3]/span`)
 	if err != nil {
