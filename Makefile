@@ -1,13 +1,16 @@
-# Not really..
-lint:
-	@pip install pylint
-	pylint main.py
-
-
+.PHONY: format
 format:
-	@pip install isort black
-	isort main.py
-	black -l 79 main.py
+	@go install golang.org/x/tools/cmd/goimports@latest
+	goimports -local "github.com/Kcrong/autostudy" -w .
+	gofmt -s -w .
+	go mod tidy
 
-freeze:
-	pip freeze > requirements.txt
+.PHONY: test
+test:
+	@go install github.com/rakyll/gotest@latest
+	gotest -race -cover -v ./...
+
+.PHONY: update
+update:
+	@go get -u all
+	go mod tidy
