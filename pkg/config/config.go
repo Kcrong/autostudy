@@ -59,6 +59,22 @@ func NewConfig() (*Config, error) {
 		return nil, errors.Wrapf(err, "invalid chat_id: %s", getEnv("TELEGRAM_CHAT_ID", ""))
 	}
 
+	useLocalBrowser := !isProd
+	if v := getEnv("USE_LOCAL_BROWSER", ""); v != "" {
+		useLocalBrowser, err = strconv.ParseBool(v)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid USE_LOCAL_BROWSER: %s", v)
+		}
+	}
+
+	shouldRunHeadless := isProd
+	if v := getEnv("SHOULD_RUN_HEADLESS", ""); v != "" {
+		shouldRunHeadless, err = strconv.ParseBool(v)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid SHOULD_RUN_HEADLESS: %s", v)
+		}
+	}
+
 	return &Config{
 		ENV:                   env,
 		CommitHash:            getEnv("COMMIT_HASH", "not-available"),
@@ -75,8 +91,8 @@ func NewConfig() (*Config, error) {
 		TelegramChatID:    chatID,
 		SentryDSN:         getEnv("SENTRY_DSN", ""),
 		IsProduction:      isProd,
-		UseLocalBrowser:   !isProd,
+		UseLocalBrowser:   useLocalBrowser,
 		LocalBrowserPath:  getEnv("LOCAL_BROWSER_PATH", "./chromedriver"),
-		ShouldRunHeadless: isProd,
+		ShouldRunHeadless: shouldRunHeadless,
 	}, nil
 }

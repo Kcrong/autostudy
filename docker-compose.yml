@@ -16,6 +16,7 @@ services:
 
   app:
     image: kcrong/autostudy:latest
+    build: .
     container_name: app
     env_file: .env
     environment:
