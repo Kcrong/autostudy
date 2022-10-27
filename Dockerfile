@@ -5,6 +5,8 @@ ENV GO111MODULE=on \
     GOOS=linux \
     GOARCH=amd64
 
+RUN apk --no-cache add ca-certificates
+
 WORKDIR /build
 
 COPY go.mod go.sum ./
@@ -22,6 +24,7 @@ FROM scratch
 
 ENV COMMIT_HASH=$GITHUB_SHA
 
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /dist/main .
 
 ENTRYPOINT ["/main"]
