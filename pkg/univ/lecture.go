@@ -87,7 +87,7 @@ func ParseLecture(lectureElement selenium.WebElement, watchFunc WatchFuncType) (
 	}
 
 	if watchFunc != nil && !lecture.IsDone() {
-		if err := watchFunc(titleElement, hasPlayed, hasExam); err != nil {
+		if err := watchFunc(lecture); err != nil {
 			return nil, err
 		}
 	}

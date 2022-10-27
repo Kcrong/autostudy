@@ -9,17 +9,18 @@ import (
 	"github.com/tebeka/selenium"
 
 	"github.com/Kcrong/autostudy/pkg/driver"
+	"github.com/Kcrong/autostudy/pkg/noti"
 )
 
-type WatchFuncType func(selenium.WebElement, bool, bool) error
+type WatchFuncType func(*Lecture) error
 
-func NewWatchFunc(wd selenium.WebDriver, url string) WatchFuncType {
-	return func(button selenium.WebElement, hasPlayed, hasQuiz bool) error {
+func NewWatchFunc(wd selenium.WebDriver, url string, bot *noti.TelegramBot) WatchFuncType {
+	return func(l *Lecture) error {
 		if err := driver.AssertUrl(url, wd); err != nil {
 			return err
 		}
 
-		if err := button.Click(); err != nil {
+		if err := l.ButtonElement.Click(); err != nil {
 			return errors.Wrap(err, "button.Click()")
 		}
 
@@ -41,17 +42,20 @@ func NewWatchFunc(wd selenium.WebDriver, url string) WatchFuncType {
 			return errors.Wrap(err, "wd.SwitchWindow(lectureWindowHandle)")
 		}
 
-		if !hasPlayed {
+		if !l.HasPlayed {
 			if err := play(wd); err != nil {
 				return err
 			}
 		}
-		if hasQuiz {
+		if l.HasExam {
 			if err := solveQuiz(wd); err != nil {
 				return err
 			}
 		}
 
+		if err := bot.SendMessage("Completed lecture: " + l.Title); err != nil {
+			return err
+		}
 		return closeLectureWindow(wd, mainWindowHandle)
 	}
 }

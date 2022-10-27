@@ -6,17 +6,17 @@ import (
 	_ "time/tzdata"
 
 	"github.com/getsentry/sentry-go"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/tebeka/selenium"
 
 	"github.com/Kcrong/autostudy/pkg/config"
 	"github.com/Kcrong/autostudy/pkg/driver"
+	"github.com/Kcrong/autostudy/pkg/noti"
 	"github.com/Kcrong/autostudy/pkg/univ"
 )
 
-func NewReportFunc(telegramBot *tgbotapi.BotAPI, chatID int64, nowFunc func() time.Time) func(error, selenium.WebDriver) {
+func NewReportFunc(telegramBot *noti.TelegramBot) func(error, selenium.WebDriver) {
 	return func(err error, wd selenium.WebDriver) {
 		if err == nil {
 			return
@@ -25,18 +25,17 @@ func NewReportFunc(telegramBot *tgbotapi.BotAPI, chatID int64, nowFunc func() ti
 		log.Errorf("%+v", err)
 		sentry.CaptureException(err)
 
-		if _, err := telegramBot.Send(tgbotapi.NewMessage(chatID, "에러가 발생했습니다.")); err != nil {
+		if err := telegramBot.SendMessage("에러가 발생했습니다."); err != nil {
 			sentry.CaptureException(err)
 		}
-		if _, err := telegramBot.Send(tgbotapi.NewMessage(chatID, err.Error())); err != nil {
+		if err := telegramBot.SendMessage(err.Error()); err != nil {
 			sentry.CaptureException(err)
 		}
 
 		if screenshot, err := wd.Screenshot(); err == nil {
-			_, _ = telegramBot.Send(tgbotapi.NewPhoto(chatID, tgbotapi.FileBytes{
-				Name:  nowFunc().String() + ".png",
-				Bytes: screenshot,
-			}))
+			if err := telegramBot.SendPhoto(screenshot); err != nil {
+				sentry.CaptureException(err)
+			}
 		}
 	}
 }
@@ -47,31 +46,28 @@ func main() {
 		log.Fatalf("%+v", err)
 	}
 
-	kst, _ := time.LoadLocation("Asia/Seoul")
+	kst, err := time.LoadLocation("Asia/Seoul")
+	if err != nil {
+		log.Fatalf("%+v", errors.Wrap(err, "time.LoadLocation(\"Asia/Seoul\")"))
+	}
+
 	nowFunc := func() time.Time {
 		return time.Now().In(kst)
 	}
-
 	// Randomize seed.
 	rand.Seed(nowFunc().Unix())
 
-	if err := sentry.Init(sentry.ClientOptions{
-		Dsn:              c.SentryDSN,
-		Environment:      c.ENV,
-		Release:          c.CommitHash,
-		Debug:            !c.IsProduction,
-		TracesSampleRate: 1,
-	}); err != nil {
-		log.Fatalf("%+v", errors.Wrap(err, "sentry.Init()"))
+	if err := noti.InitSentry(c); err != nil {
+		log.Fatalf("%+v", err)
 	}
 	defer sentry.Flush(2 * time.Second)
 
-	bot, err := tgbotapi.NewBotAPI(c.TelegramToken)
+	bot, err := noti.NewTelegramBot(c.TelegramToken, c.TelegramChatID, nowFunc)
 	if err != nil {
-		log.Fatalf("%+v", errors.Wrap(err, "tgbotapi.NewBotAPI()"))
+		log.Fatalf("%+v", err)
 	}
 
-	reportFunc := NewReportFunc(bot, c.TelegramChatID, nowFunc)
+	reportFunc := NewReportFunc(bot)
 
 	var opt *driver.InitOption
 	if c.UseLocalBrowser {
@@ -81,7 +77,7 @@ func main() {
 		}
 	}
 
-	for range time.Tick(time.Hour) {
+	for range time.Tick(time.Millisecond) {
 		wd, closeFunc, err := driver.Init(c.SeleniumWebDriverHost, c.ShouldRunHeadless, opt)
 		if err != nil {
 			log.Fatalf("%+v", err)
@@ -90,7 +86,7 @@ func main() {
 		if err := univ.Login(wd, c.Url.Main, c.UnivID, c.UnivPW, &c.Url.MyProfile); err != nil {
 			reportFunc(err, wd)
 		}
-		if _, err := univ.GetSubjects(c.Url.Lecture, wd, true, univ.NewWatchFunc(wd, c.Url.Lecture)); err != nil {
+		if _, err := univ.GetSubjects(c.Url.Lecture, wd, true, univ.NewWatchFunc(wd, c.Url.Lecture, bot)); err != nil {
 			reportFunc(err, wd)
 		}
 

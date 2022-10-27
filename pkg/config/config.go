@@ -50,20 +50,20 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-func NewConfig() (*Config, error) {
+func NewConfig() (Config, error) {
 	env := getEnv("ENV", EnvDevelopment)
 	isProd := env == EnvProduction
 
 	chatID, err := strconv.ParseInt(getEnv("TELEGRAM_CHAT_ID", ""), 10, 64)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid chat_id: %s", getEnv("TELEGRAM_CHAT_ID", ""))
+		return Config{}, errors.Wrapf(err, "invalid chat_id: %s", getEnv("TELEGRAM_CHAT_ID", ""))
 	}
 
 	useLocalBrowser := !isProd
 	if v := getEnv("USE_LOCAL_BROWSER", ""); v != "" {
 		useLocalBrowser, err = strconv.ParseBool(v)
 		if err != nil {
-			return nil, errors.Wrapf(err, "invalid USE_LOCAL_BROWSER: %s", v)
+			return Config{}, errors.Wrapf(err, "invalid USE_LOCAL_BROWSER: %s", v)
 		}
 	}
 
@@ -71,11 +71,11 @@ func NewConfig() (*Config, error) {
 	if v := getEnv("SHOULD_RUN_HEADLESS", ""); v != "" {
 		shouldRunHeadless, err = strconv.ParseBool(v)
 		if err != nil {
-			return nil, errors.Wrapf(err, "invalid SHOULD_RUN_HEADLESS: %s", v)
+			return Config{}, errors.Wrapf(err, "invalid SHOULD_RUN_HEADLESS: %s", v)
 		}
 	}
 
-	return &Config{
+	return Config{
 		ENV:                   env,
 		CommitHash:            getEnv("COMMIT_HASH", "not-available"),
 		SeleniumWebDriverHost: getEnv("SELENIUM_WEB_DRIVER_HOST", ""),
