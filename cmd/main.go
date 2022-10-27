@@ -15,14 +15,13 @@ import (
 	"github.com/Kcrong/autostudy/pkg/univ"
 )
 
-func NewReportFunc(telegramBot *tgbotapi.BotAPI, chatID int64, wd selenium.WebDriver, nowFunc func() time.Time) func(error) {
-	return func(err error) {
+func NewReportFunc(telegramBot *tgbotapi.BotAPI, chatID int64, nowFunc func() time.Time) func(error, selenium.WebDriver) {
+	return func(err error, wd selenium.WebDriver) {
 		if err == nil {
 			return
 		}
 
 		log.Errorf("%+v", err)
-
 		sentry.CaptureException(err)
 
 		if _, err := telegramBot.Send(tgbotapi.NewMessage(chatID, "에러가 발생했습니다.")); err != nil {
@@ -59,8 +58,13 @@ func main() {
 		log.Fatalf("%+v", err)
 	}
 
+	kst, _ := time.LoadLocation("Asia/Seoul")
+	nowFunc := func() time.Time {
+		return time.Now().In(kst)
+	}
+
 	// Randomize seed.
-	rand.Seed(time.Now().Unix())
+	rand.Seed(nowFunc().Unix())
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:              c.SentryDSN,
@@ -78,6 +82,8 @@ func main() {
 		log.Fatalf("%+v", errors.Wrap(err, "tgbotapi.NewBotAPI()"))
 	}
 
+	reportFunc := NewReportFunc(bot, c.TelegramChatID, nowFunc)
+
 	var opt *driver.InitOption
 	if c.UseLocalBrowser {
 		opt = &driver.InitOption{
@@ -85,38 +91,20 @@ func main() {
 			LocalBrowserPath: c.LocalBrowserPath,
 		}
 	}
-	wd, closeFunc, err := driver.Init(c.SeleniumWebDriverHost, c.ShouldRunHeadless, opt)
-	if err != nil {
-		log.Fatalf("%+v", err)
-	}
-
-	reportFunc := NewReportFunc(bot, c.TelegramChatID, wd, time.Now)
-
-	defer func() {
-		if err := closeFunc(); err != nil {
-			reportFunc(err)
-		}
-	}()
-
-	if _, err := bot.Send(tgbotapi.NewMessage(c.TelegramChatID, "Start")); err != nil {
-		log.Fatal(errors.Wrap(err, "bot.Send()"))
-	}
-
-	if err := LetsStudy(*c, wd); err != nil {
-		reportFunc(err)
-		log.Fatalf("%+v", err)
-	}
-	sentry.Flush(2 * time.Second)
 
 	for range time.Tick(time.Hour) {
-		if _, err := bot.Send(tgbotapi.NewMessage(c.TelegramChatID, "Start")); err != nil {
-			log.Fatal(errors.Wrap(err, "bot.Send()"))
+		wd, closeFunc, err := driver.Init(c.SeleniumWebDriverHost, c.ShouldRunHeadless, opt)
+		if err != nil {
+			log.Fatalf("%+v", err)
 		}
 
 		if err := LetsStudy(*c, wd); err != nil {
-			reportFunc(err)
+			reportFunc(err, wd)
 			log.Fatalf("%+v", err)
 		}
+
+		reportFunc(closeFunc(), wd)
+
 		sentry.Flush(2 * time.Second)
 	}
 }
