@@ -15,7 +15,7 @@ services:
       retries: 60
 
   app:
-    image: kcrong/auto-knou:latest
+    image: kcrong/autostudy:latest
     container_name: app
     env_file: .env
     environment:

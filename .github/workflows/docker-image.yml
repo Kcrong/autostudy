@@ -18,7 +18,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            kcrong/auto-knou
+            kcrong/autostudy
           tags: |
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}

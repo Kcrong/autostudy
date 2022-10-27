@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tebeka/selenium"
 
-	"github.com/Kcrong/autostudy/driver"
+	"github.com/Kcrong/autostudy/pkg/driver"
 )
 
 type WatchFuncType func(selenium.WebElement, bool, bool) error

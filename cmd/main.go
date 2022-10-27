@@ -10,9 +10,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/tebeka/selenium"
 
-	"github.com/Kcrong/autostudy/config"
-	"github.com/Kcrong/autostudy/driver"
-	"github.com/Kcrong/autostudy/univ"
+	"github.com/Kcrong/autostudy/pkg/config"
+	"github.com/Kcrong/autostudy/pkg/driver"
+	univ2 "github.com/Kcrong/autostudy/pkg/univ"
 )
 
 func NewReportFunc(telegramBot *tgbotapi.BotAPI, chatID int64, wd selenium.WebDriver, nowFunc func() time.Time) func(error) {
@@ -82,11 +82,11 @@ func main() {
 		}
 	}()
 
-	if err := univ.Login(wd, c.Url.Main, c.UnivID, c.UnivPW, &c.Url.MyProfile); err != nil {
+	if err := univ2.Login(wd, c.Url.Main, c.UnivID, c.UnivPW, &c.Url.MyProfile); err != nil {
 		reportFunc(err)
 	}
 
-	_, err = univ.GetSubjects(c.Url.Lecture, wd, true, univ.NewWatchFunc(wd, c.Url.Lecture))
+	_, err = univ2.GetSubjects(c.Url.Lecture, wd, true, univ2.NewWatchFunc(wd, c.Url.Lecture))
 	if err != nil {
 		reportFunc(err)
 	}

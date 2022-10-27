@@ -1,16 +1,27 @@
-FROM python:3.10
+FROM golang:alpine AS builder
 
-ENV KNOU_ID "id"
-ENV KNOU_PW "pw"
-ENV TELEGRAM_CHAT_ID "chat_id"
-ENV TELEGRAM_API_TOKEN "token"
-ENV DRIVER_COMMAND_URL "http://localhost:4444"
+ENV GO111MODULE=on \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64
 
-WORKDIR /usr/src
+WORKDIR /build
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY go.mod go.sum ./
+RUN go mod download
 
-COPY main.py .
+COPY cmd/ cmd/
+COPY pkg/ pkg/
+RUN go build -o main cmd/main.go
 
-CMD [ "python", "main.py" ]
+WORKDIR /dist
+
+RUN cp /build/main .
+
+FROM scratch
+
+ENV COMMIT_HASH=$GITHUB_SHA
+
+COPY --from=builder /dist/main .
+
+ENTRYPOINT ["/main"]
