@@ -50,7 +50,7 @@ func LetsStudy(c config.Config, wd selenium.WebDriver, reportFunc func(error)) {
 func main() {
 	c, err := config.NewConfig()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%+v", err)
 	}
 
 	// Randomize seed.
@@ -63,13 +63,13 @@ func main() {
 		Debug:            !c.IsProduction,
 		TracesSampleRate: 1,
 	}); err != nil {
-		log.Fatal(errors.Wrap(err, "sentry.Init()"))
+		log.Fatalf("%+v", errors.Wrap(err, "sentry.Init()"))
 	}
 	defer sentry.Flush(2 * time.Second)
 
 	bot, err := tgbotapi.NewBotAPI(c.TelegramToken)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "tgbotapi.NewBotAPI()"))
+		log.Fatalf("%+v", errors.Wrap(err, "tgbotapi.NewBotAPI()"))
 	}
 
 	var opt *driver.InitOption
