@@ -8,26 +8,38 @@ import (
 )
 
 const (
+	TelegramCommandPrefix = "/"
+
 	CommandReport = "report"
 	CommandRun    = "run"
 )
 
+var (
+	validCommands = []string{CommandReport, CommandRun}
+)
+
 func IsValidCommand(c string) bool {
-	switch c {
-	case CommandReport, CommandRun:
-		return true
-	default:
-		return false
+	for _, validCommand := range validCommands {
+		if c == validCommand {
+			return true
+		}
 	}
+	return false
 }
 
 var (
-	keyboardMarkup = tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("/"+CommandRun),
-			tgbotapi.NewKeyboardButton("/"+CommandReport),
-		),
-	)
+	keyboardMarkup = func() tgbotapi.ReplyKeyboardMarkup {
+		rows := make([]tgbotapi.KeyboardButton, len(validCommands))
+		for i, c := range validCommands {
+			rows[i] = tgbotapi.NewKeyboardButton(TelegramCommandPrefix + c)
+		}
+
+		return tgbotapi.NewReplyKeyboard(
+			tgbotapi.NewKeyboardButtonRow(
+				rows...,
+			),
+		)
+	}()
 )
 
 type TelegramBot struct {
