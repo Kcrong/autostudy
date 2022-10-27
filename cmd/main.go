@@ -61,6 +61,9 @@ func main() {
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "tgbotapi.NewBotAPI()"))
 	}
+	if _, err := bot.Send(tgbotapi.NewMessage(c.TelegramChatID, "Start")); err != nil {
+		log.Fatal(errors.Wrap(err, "bot.Send()"))
+	}
 
 	var opt *driver.InitOption
 	if c.UseLocalBrowser {
