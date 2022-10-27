@@ -98,12 +98,25 @@ func main() {
 		}
 	}()
 
+	if _, err := bot.Send(tgbotapi.NewMessage(c.TelegramChatID, "Start")); err != nil {
+		log.Fatal(errors.Wrap(err, "bot.Send()"))
+	}
+
+	if err := LetsStudy(*c, wd); err != nil {
+		reportFunc(err)
+		log.Fatalf("%+v", err)
+	}
+	sentry.Flush(2 * time.Second)
+
 	for range time.Tick(time.Hour) {
 		if _, err := bot.Send(tgbotapi.NewMessage(c.TelegramChatID, "Start")); err != nil {
 			log.Fatal(errors.Wrap(err, "bot.Send()"))
 		}
 
-		reportFunc(LetsStudy(*c, wd))
+		if err := LetsStudy(*c, wd); err != nil {
+			reportFunc(err)
+			log.Fatalf("%+v", err)
+		}
 		sentry.Flush(2 * time.Second)
 	}
 }
