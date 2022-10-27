@@ -103,12 +103,7 @@ func main() {
 	}()
 
 	for update := range bot.Updates() {
-		if update.Message == nil || !update.Message.IsCommand() {
-			continue
-		}
-
-		if update.Message.Command() != "status" {
-			_ = bot.SendMessage("invalid command")
+		if update.Message == nil || !update.Message.IsCommand() || !noti.IsValidCommand(update.Message.Command()) {
 			continue
 		}
 
@@ -117,16 +112,28 @@ func main() {
 			log.Fatalf("%+v", err)
 		}
 
-		if err := univ.Login(wd, c.Url.Main, c.UnivID, c.UnivPW, &c.Url.MyProfile); err != nil {
-			reportFunc(err, wd)
-		}
-		if subjects, err := univ.GetSubjects(c.Url.Lecture, wd, true, nil); err != nil {
-			reportFunc(err, wd)
-		} else {
-			err := bot.SendMessage(toNotCompletedReport(subjects))
-			if err != nil {
-				reportFunc(err, nil)
+		switch update.Message.Command() {
+		case noti.CommandReport:
+			if err := univ.Login(wd, c.Url.Main, c.UnivID, c.UnivPW, &c.Url.MyProfile); err != nil {
+				reportFunc(err, wd)
 			}
+			if subjects, err := univ.GetSubjects(c.Url.Lecture, wd, true, nil); err != nil {
+				reportFunc(err, wd)
+			} else {
+				err := bot.SendMessage(toNotCompletedReport(subjects))
+				if err != nil {
+					reportFunc(err, nil)
+				}
+			}
+		case noti.CommandRun:
+			if err := univ.Login(wd, c.Url.Main, c.UnivID, c.UnivPW, &c.Url.MyProfile); err != nil {
+				reportFunc(err, wd)
+			}
+			if _, err := univ.GetSubjects(c.Url.Lecture, wd, true, univ.NewWatchFunc(wd, c.Url.Lecture, bot)); err != nil {
+				reportFunc(err, wd)
+			}
+
+			// TODO: case noti.CommandScreenshot, case noti.CommandStop
 		}
 
 		reportFunc(closeFunc(), nil)

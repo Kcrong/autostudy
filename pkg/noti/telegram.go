@@ -7,6 +7,29 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	CommandReport = "report"
+	CommandRun    = "run"
+)
+
+func IsValidCommand(c string) bool {
+	switch c {
+	case CommandReport, CommandRun:
+		return true
+	default:
+		return false
+	}
+}
+
+var (
+	keyboardMarkup = tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("/"+CommandRun),
+			tgbotapi.NewKeyboardButton("/"+CommandReport),
+		),
+	)
+)
+
 type TelegramBot struct {
 	bot     *tgbotapi.BotAPI
 	chatID  int64
@@ -14,15 +37,19 @@ type TelegramBot struct {
 }
 
 func (b TelegramBot) SendMessage(msg string) error {
-	_, err := b.bot.Send(tgbotapi.NewMessage(b.chatID, msg))
+	m := tgbotapi.NewMessage(b.chatID, msg)
+	m.ReplyMarkup = keyboardMarkup
+	_, err := b.bot.Send(m)
 	return errors.Wrap(err, "b.bot.Send(tgbotapi.NewMessage(b.chatID, msg))")
 }
 
 func (b TelegramBot) SendPhoto(photo []byte) error {
-	_, err := b.bot.Send(tgbotapi.NewPhoto(b.chatID, tgbotapi.FileBytes{
+	m := tgbotapi.NewPhoto(b.chatID, tgbotapi.FileBytes{
 		Name:  b.nowFunc().String() + ".png",
 		Bytes: photo,
-	}))
+	})
+	m.ReplyMarkup = keyboardMarkup
+	_, err := b.bot.Send(m)
 	return errors.Wrap(err, "b.bot.Send(tgbotapi.NewPhoto(b.chatID, tgbotapi.FileBytes{...}))")
 }
 
