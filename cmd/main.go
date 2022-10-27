@@ -17,6 +17,10 @@ import (
 
 func NewReportFunc(telegramBot *tgbotapi.BotAPI, chatID int64, wd selenium.WebDriver, nowFunc func() time.Time) func(error) {
 	return func(err error) {
+		if err == nil {
+			return
+		}
+
 		log.Errorf("%+v", err)
 
 		sentry.CaptureException(err)
@@ -37,14 +41,16 @@ func NewReportFunc(telegramBot *tgbotapi.BotAPI, chatID int64, wd selenium.WebDr
 	}
 }
 
-func LetsStudy(c config.Config, wd selenium.WebDriver, reportFunc func(error)) {
+func LetsStudy(c config.Config, wd selenium.WebDriver) error {
 	if err := univ.Login(wd, c.Url.Main, c.UnivID, c.UnivPW, &c.Url.MyProfile); err != nil {
-		reportFunc(err)
+		return err
 	}
 
 	if _, err := univ.GetSubjects(c.Url.Lecture, wd, true, univ.NewWatchFunc(wd, c.Url.Lecture)); err != nil {
-		reportFunc(err)
+		return err
 	}
+
+	return nil
 }
 
 func main() {
@@ -97,7 +103,7 @@ func main() {
 			log.Fatal(errors.Wrap(err, "bot.Send()"))
 		}
 
-		LetsStudy(*c, wd, reportFunc)
+		reportFunc(LetsStudy(*c, wd))
 		sentry.Flush(2 * time.Second)
 	}
 }
