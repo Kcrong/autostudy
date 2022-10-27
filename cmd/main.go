@@ -40,11 +40,6 @@ func NewReportFunc(telegramBot *tgbotapi.BotAPI, chatID int64, nowFunc func() ti
 	}
 }
 
-func LetsStudy(c config.Config, wd selenium.WebDriver) error {
-
-	return nil
-}
-
 func main() {
 	c, err := config.NewConfig()
 	if err != nil {
