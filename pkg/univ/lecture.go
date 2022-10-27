@@ -32,11 +32,7 @@ func (l Lecture) ShouldBePlayed() bool {
 	}
 
 	// Not played yet or has exam and not completed
-	if !l.HasPlayed || (l.HasExam && !l.HasExamCompleted) {
-		return true
-	}
-
-	return l.PlaybackDuration-l.PlaybackLocation >= 3*time.Minute
+	return !l.HasPlayed || (l.HasExam && !l.HasExamCompleted)
 }
 
 func (l Lecture) ShouldBeExamined() bool {
@@ -44,6 +40,10 @@ func (l Lecture) ShouldBeExamined() bool {
 }
 
 func (l Lecture) IsDone() bool {
+	if !l.IsReadied {
+		return false
+	}
+
 	return !l.ShouldBePlayed() && !l.ShouldBeExamined()
 }
 

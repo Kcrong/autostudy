@@ -26,6 +26,12 @@ func (b TelegramBot) SendPhoto(photo []byte) error {
 	return errors.Wrap(err, "b.bot.Send(tgbotapi.NewPhoto(b.chatID, tgbotapi.FileBytes{...}))")
 }
 
+func (b TelegramBot) Updates() tgbotapi.UpdatesChannel {
+	return b.bot.GetUpdatesChan(tgbotapi.UpdateConfig{
+		Timeout: 60,
+	})
+}
+
 func NewTelegramBot(token string, chatID int64, nowFunc func() time.Time) (*TelegramBot, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {

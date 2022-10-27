@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 	_ "time/tzdata"
 
@@ -30,6 +32,10 @@ func NewReportFunc(telegramBot *noti.TelegramBot) func(error, selenium.WebDriver
 		}
 		if err := telegramBot.SendMessage(err.Error()); err != nil {
 			sentry.CaptureException(err)
+		}
+
+		if wd == nil {
+			return
 		}
 
 		if screenshot, err := wd.Screenshot(); err == nil {
@@ -77,7 +83,35 @@ func main() {
 		}
 	}
 
-	for range time.Tick(time.Millisecond) {
+	go func() {
+		for range time.Tick(time.Hour) {
+			wd, closeFunc, err := driver.Init(c.SeleniumWebDriverHost, c.ShouldRunHeadless, opt)
+			if err != nil {
+				log.Fatalf("%+v", err)
+			}
+
+			if err := univ.Login(wd, c.Url.Main, c.UnivID, c.UnivPW, &c.Url.MyProfile); err != nil {
+				reportFunc(err, wd)
+			}
+			if _, err := univ.GetSubjects(c.Url.Lecture, wd, true, univ.NewWatchFunc(wd, c.Url.Lecture, bot)); err != nil {
+				reportFunc(err, wd)
+			}
+
+			reportFunc(closeFunc(), nil)
+			sentry.Flush(2 * time.Second)
+		}
+	}()
+
+	for update := range bot.Updates() {
+		if update.Message == nil || !update.Message.IsCommand() {
+			continue
+		}
+
+		if update.Message.Command() != "status" {
+			_ = bot.SendMessage("invalid command")
+			continue
+		}
+
 		wd, closeFunc, err := driver.Init(c.SeleniumWebDriverHost, c.ShouldRunHeadless, opt)
 		if err != nil {
 			log.Fatalf("%+v", err)
@@ -86,11 +120,63 @@ func main() {
 		if err := univ.Login(wd, c.Url.Main, c.UnivID, c.UnivPW, &c.Url.MyProfile); err != nil {
 			reportFunc(err, wd)
 		}
-		if _, err := univ.GetSubjects(c.Url.Lecture, wd, true, univ.NewWatchFunc(wd, c.Url.Lecture, bot)); err != nil {
+		if subjects, err := univ.GetSubjects(c.Url.Lecture, wd, true, nil); err != nil {
 			reportFunc(err, wd)
+		} else {
+			err := bot.SendMessage(toNotCompletedReport(subjects))
+			if err != nil {
+				reportFunc(err, nil)
+			}
 		}
 
-		reportFunc(closeFunc(), wd)
-		sentry.Flush(2 * time.Second)
+		reportFunc(closeFunc(), nil)
 	}
+}
+
+func toNotCompletedReport(subjects []*univ.Subject) string {
+	var sb strings.Builder
+	sb.WriteString("미완료 과목 목록")
+	sb.WriteString("\n")
+
+	for _, subject := range subjects {
+		if subject.IsCompleted() {
+			continue
+		}
+
+		sb.WriteString("- ")
+		sb.WriteString(subject.Title + ": " + fmt.Sprintf("%.2f%%", subject.Progress))
+		sb.WriteString("\n")
+
+		for _, lecture := range subject.Lectures {
+			if !lecture.IsReadied {
+				sb.WriteString("-- ")
+				sb.WriteString(lecture.Title + " " + "준비중")
+				sb.WriteString("\n")
+
+				continue
+			}
+
+			if lecture.IsDone() {
+				continue
+			}
+
+			sb.WriteString("-- ")
+			msg := lecture.Title + " " + "playback: " + toCheckbox(lecture.HasPlayed)
+			if lecture.HasExam {
+				msg += " " + "quiz: " + toCheckbox(lecture.HasExamCompleted)
+			}
+			sb.WriteString(msg)
+			sb.WriteString("\n")
+		}
+	}
+
+	return sb.String()
+}
+
+func toCheckbox(v bool) string {
+	if v {
+		return "[v]"
+	}
+
+	return "[-]"
 }
