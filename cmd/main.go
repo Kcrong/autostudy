@@ -98,10 +98,7 @@ func main() {
 			log.Fatalf("%+v", err)
 		}
 
-		if err := LetsStudy(*c, wd); err != nil {
-			reportFunc(err, wd)
-			log.Fatalf("%+v", err)
-		}
+		reportFunc(LetsStudy(*c, wd), wd)
 
 		reportFunc(closeFunc(), wd)
 
