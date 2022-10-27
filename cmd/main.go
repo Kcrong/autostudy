@@ -12,7 +12,7 @@ import (
 
 	"github.com/Kcrong/autostudy/pkg/config"
 	"github.com/Kcrong/autostudy/pkg/driver"
-	univ2 "github.com/Kcrong/autostudy/pkg/univ"
+	"github.com/Kcrong/autostudy/pkg/univ"
 )
 
 func NewReportFunc(telegramBot *tgbotapi.BotAPI, chatID int64, wd selenium.WebDriver, nowFunc func() time.Time) func(error) {
@@ -34,6 +34,16 @@ func NewReportFunc(telegramBot *tgbotapi.BotAPI, chatID int64, wd selenium.WebDr
 				Bytes: screenshot,
 			}))
 		}
+	}
+}
+
+func LetsStudy(c config.Config, wd selenium.WebDriver, reportFunc func(error)) {
+	if err := univ.Login(wd, c.Url.Main, c.UnivID, c.UnivPW, &c.Url.MyProfile); err != nil {
+		reportFunc(err)
+	}
+
+	if _, err := univ.GetSubjects(c.Url.Lecture, wd, true, univ.NewWatchFunc(wd, c.Url.Lecture)); err != nil {
+		reportFunc(err)
 	}
 }
 
@@ -61,9 +71,6 @@ func main() {
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "tgbotapi.NewBotAPI()"))
 	}
-	if _, err := bot.Send(tgbotapi.NewMessage(c.TelegramChatID, "Start")); err != nil {
-		log.Fatal(errors.Wrap(err, "bot.Send()"))
-	}
 
 	var opt *driver.InitOption
 	if c.UseLocalBrowser {
@@ -85,12 +92,12 @@ func main() {
 		}
 	}()
 
-	if err := univ2.Login(wd, c.Url.Main, c.UnivID, c.UnivPW, &c.Url.MyProfile); err != nil {
-		reportFunc(err)
-	}
+	for range time.Tick(time.Hour) {
+		if _, err := bot.Send(tgbotapi.NewMessage(c.TelegramChatID, "Start")); err != nil {
+			log.Fatal(errors.Wrap(err, "bot.Send()"))
+		}
 
-	_, err = univ2.GetSubjects(c.Url.Lecture, wd, true, univ2.NewWatchFunc(wd, c.Url.Lecture))
-	if err != nil {
-		reportFunc(err)
+		LetsStudy(*c, wd, reportFunc)
+		sentry.Flush(2 * time.Second)
 	}
 }
