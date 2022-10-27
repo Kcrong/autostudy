@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/getsentry/sentry-go"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
