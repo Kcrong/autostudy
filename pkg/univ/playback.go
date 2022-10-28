@@ -177,10 +177,6 @@ func play(wd selenium.WebDriver) error {
 			return false, err
 		}
 
-		if currentLocation == nil {
-			return true, nil
-		}
-
 		return totalDuration.Sub(*currentLocation) <= time.Minute, nil
 	}, 24*time.Hour, time.Minute); err != nil {
 		return err
@@ -198,7 +194,7 @@ func closeLectureWindow(wd selenium.WebDriver, mainWindowHandle string) error {
 }
 
 func parsePlayerDuration(wd selenium.WebDriver, xpath string) (*time.Time, error) {
-	de, err := wd.FindElement(selenium.ByXPATH, xpath)
+	de, err := driver.WaitAndFindElement(wd, selenium.ByXPATH, xpath)
 	if err != nil {
 		return nil, errors.Wrap(err, "wd.FindElement(xpath)")
 	}
@@ -206,11 +202,6 @@ func parsePlayerDuration(wd selenium.WebDriver, xpath string) (*time.Time, error
 	text, err := de.Text()
 	if err != nil {
 		return nil, errors.Wrap(err, "de.Text()")
-	}
-
-	// NOTE: When video has been completed, text is empty.
-	if text == "" {
-		return nil, nil
 	}
 
 	return parseDuration(text)
