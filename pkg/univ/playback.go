@@ -172,13 +172,10 @@ func play(wd selenium.WebDriver) error {
 	}
 
 	if err := wd.WaitWithTimeoutAndInterval(func(wd selenium.WebDriver) (bool, error) {
-		currentLocation, err := parsePlayerDuration(wd, `//*[@id="wp-controls-outer-controlbar"]/div[2]/div[2]/div/div/div[1]/span`)
-		if err != nil {
-			return false, err
-		}
-
-		return totalDuration.Sub(*currentLocation) <= time.Minute, nil
-	}, 24*time.Hour, time.Minute); err != nil {
+		// NOTE: Sometimes the player is playing, but the current location is not available.
+		currentLocation, _ := parsePlayerDuration(wd, `//*[@id="wp-controls-outer-controlbar"]/div[2]/div[2]/div/div/div[1]/span`)
+		return totalDuration.Equal(*currentLocation), nil
+	}, 3*time.Hour, time.Minute); err != nil {
 		return err
 	}
 
@@ -202,6 +199,10 @@ func parsePlayerDuration(wd selenium.WebDriver, xpath string) (*time.Time, error
 	text, err := de.Text()
 	if err != nil {
 		return nil, errors.Wrap(err, "de.Text()")
+	}
+
+	if text == "" {
+		return nil, errors.New("parsePlayerDuration: text is empty")
 	}
 
 	return parseDuration(text)
