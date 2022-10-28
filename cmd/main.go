@@ -132,6 +132,9 @@ func main() {
 			if _, err := univ.GetSubjects(c.Url.Lecture, wd, true, univ.NewWatchFunc(wd, c.Url.Lecture, bot)); err != nil {
 				reportFunc(err, wd)
 			}
+			if err := bot.SendMessage("Done"); err != nil {
+				reportFunc(err, nil)
+			}
 
 			// TODO: case noti.CommandScreenshot, case noti.CommandStop
 		}
