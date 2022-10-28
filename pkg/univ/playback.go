@@ -174,7 +174,7 @@ func play(wd selenium.WebDriver) error {
 	if err := wd.WaitWithTimeoutAndInterval(func(wd selenium.WebDriver) (bool, error) {
 		// NOTE: Sometimes the player is playing, but the current location is not available.
 		currentLocation, _ := parsePlayerDuration(wd, `//*[@id="wp-controls-outer-controlbar"]/div[2]/div[2]/div/div/div[1]/span`)
-		return totalDuration.Equal(*currentLocation), nil
+		return totalDuration.Equal(currentLocation), nil
 	}, 3*time.Hour, time.Minute); err != nil {
 		return err
 	}
@@ -190,36 +190,36 @@ func closeLectureWindow(wd selenium.WebDriver, mainWindowHandle string) error {
 	return wd.SwitchWindow(mainWindowHandle)
 }
 
-func parsePlayerDuration(wd selenium.WebDriver, xpath string) (*time.Time, error) {
+func parsePlayerDuration(wd selenium.WebDriver, xpath string) (time.Time, error) {
 	de, err := driver.WaitAndFindElement(wd, selenium.ByXPATH, xpath)
 	if err != nil {
-		return nil, errors.Wrap(err, "wd.FindElement(xpath)")
+		return time.Time{}, errors.Wrap(err, "wd.FindElement(xpath)")
 	}
 
 	text, err := de.Text()
 	if err != nil {
-		return nil, errors.Wrap(err, "de.Text()")
+		return time.Time{}, errors.Wrap(err, "de.Text()")
 	}
 
 	if text == "" {
-		return nil, errors.New("parsePlayerDuration: text is empty")
+		return time.Time{}, errors.New("parsePlayerDuration: text is empty")
 	}
 
 	return parseDuration(text)
 }
 
-func parseDuration(duration string) (*time.Time, error) {
+func parseDuration(duration string) (time.Time, error) {
 	withHour, err := time.Parse("15:04:05", duration)
 	if err == nil {
-		return &withHour, nil
+		return withHour, nil
 	}
 
 	withoutHour, err := time.Parse("04:05", duration)
 	if err == nil {
-		return &withoutHour, nil
+		return withoutHour, nil
 	}
 
-	return nil, errors.Errorf("parseDuration: invalid duration: %s", duration)
+	return time.Time{}, errors.Errorf("parseDuration: invalid duration: %s", duration)
 }
 
 func setFastest(wd selenium.WebDriver) error {
