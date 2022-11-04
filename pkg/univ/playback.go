@@ -193,18 +193,28 @@ func closeLectureWindow(wd selenium.WebDriver, mainWindowHandle string) error {
 }
 
 func parsePlayerDuration(wd selenium.WebDriver, xpath string) (time.Time, error) {
+	_ = wd.Wait(func(wd selenium.WebDriver) (bool, error) {
+		de, err := driver.WaitAndFindElement(wd, selenium.ByXPATH, xpath)
+		if err != nil {
+			return false, errors.Wrap(err, "driver.WaitAndFindElement(wd, selenium.ByXPATH, xpath)")
+		}
+
+		text, err := de.Text()
+		if err != nil {
+			return false, errors.Wrap(err, "de.Text()")
+		}
+
+		return text != "", nil
+	})
+
 	de, err := driver.WaitAndFindElement(wd, selenium.ByXPATH, xpath)
 	if err != nil {
-		return time.Time{}, errors.Wrap(err, "wd.FindElement(xpath)")
+		return time.Time{}, errors.Wrap(err, "driver.WaitAndFindElement(wd, selenium.ByXPATH, xpath)")
 	}
 
 	text, err := de.Text()
 	if err != nil {
 		return time.Time{}, errors.Wrap(err, "de.Text()")
-	}
-
-	if text == "" {
-		return time.Time{}, errors.New("parsePlayerDuration: text is empty")
 	}
 
 	return parseDuration(text)
