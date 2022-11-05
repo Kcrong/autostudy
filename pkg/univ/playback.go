@@ -193,19 +193,9 @@ func closeLectureWindow(wd selenium.WebDriver, mainWindowHandle string) error {
 }
 
 func parsePlayerDuration(wd selenium.WebDriver, xpath string) (time.Time, error) {
-	_ = wd.Wait(func(wd selenium.WebDriver) (bool, error) {
-		de, err := driver.WaitAndFindElement(wd, selenium.ByXPATH, xpath)
-		if err != nil {
-			return false, errors.Wrap(err, "driver.WaitAndFindElement(wd, selenium.ByXPATH, xpath)")
-		}
-
-		text, err := de.Text()
-		if err != nil {
-			return false, errors.Wrap(err, "de.Text()")
-		}
-
-		return text != "", nil
-	})
+	if err := mouseOverToPlayer(wd); err != nil {
+		return time.Time{}, err
+	}
 
 	de, err := driver.WaitAndFindElement(wd, selenium.ByXPATH, xpath)
 	if err != nil {
@@ -234,13 +224,21 @@ func parseDuration(duration string) (time.Time, error) {
 	return time.Time{}, errors.Errorf("parseDuration: invalid duration: %s", duration)
 }
 
-func setFastest(wd selenium.WebDriver) error {
+func mouseOverToPlayer(wd selenium.WebDriver) error {
 	playerElement, err := wd.FindElement(selenium.ByID, "player0")
 	if err != nil {
 		return errors.Wrap(err, "wd.FindElement(selenium.ByID, \"player0\")")
 	}
-	if err := playerElement.MoveTo(0, 0); err != nil {
+	if err := playerElement.MoveTo(10, 10); err != nil {
 		return errors.Wrap(err, "playerElement.MoveTo(0,0)")
+	}
+
+	return nil
+}
+
+func setFastest(wd selenium.WebDriver) error {
+	if err := mouseOverToPlayer(wd); err != nil {
+		return err
 	}
 
 	speedTitleElement, err := wd.FindElement(selenium.ByID, "currentSpeedTitle")
