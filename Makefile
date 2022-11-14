@@ -4,6 +4,7 @@ format:
 	goimports -local "github.com/Kcrong/autostudy" -w .
 	gofmt -s -w .
 	go mod tidy
+	go mod vendor
 
 .PHONY: test
 test:
