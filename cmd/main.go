@@ -84,7 +84,7 @@ func main() {
 	}
 
 	go func() {
-		for range time.Tick(time.Hour) {
+		for range time.Tick(time.Hour * 24) {
 			wd, closeFunc, err := driver.Init(c.SeleniumWebDriverHost, c.ShouldRunHeadless, opt)
 			if err != nil {
 				log.Fatalf("%+v", err)
